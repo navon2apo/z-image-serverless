@@ -863,7 +863,7 @@ class TelegramBot:
             self.mac.send_notification(r['message'], "Reminder")
         return messages
 
-    async def run(self):
+    def run(self):
         """Run the Telegram bot."""
         try:
             from telegram import Update
@@ -948,7 +948,8 @@ class TelegramBot:
         print(f"🔒 Only responding to user ID: {self.owner_id}")
         print("\nPress Ctrl+C to stop\n")
 
-        await app.run_polling()
+        # Use run_polling directly (it manages its own event loop)
+        app.run_polling(drop_pending_updates=True)
 
 # ============================================================================
 # MAIN
@@ -1057,7 +1058,7 @@ Then you don't need the ANTHROPIC_API_KEY!
 
     # Run Telegram bot
     bot = TelegramBot()
-    asyncio.run(bot.run())
+    bot.run()
 
 if __name__ == "__main__":
     main()
