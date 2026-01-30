@@ -936,8 +936,12 @@ class TelegramBot:
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
         app.add_handler(MessageHandler(filters.COMMAND, handle_text))
 
-        # Schedule reminder checker
-        app.job_queue.run_repeating(reminder_checker, interval=60, first=10)
+        # Schedule reminder checker (optional - requires job-queue extra)
+        if app.job_queue:
+            app.job_queue.run_repeating(reminder_checker, interval=60, first=10)
+            print("✅ Reminder system enabled")
+        else:
+            print("⚠️  Reminders disabled (install: pip3 install 'python-telegram-bot[job-queue]')")
 
         print(f"\n🤖 {CONFIG['ASSISTANT_NAME']} is running!")
         print(f"📱 Open Telegram and message your bot")
