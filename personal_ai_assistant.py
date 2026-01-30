@@ -48,10 +48,26 @@ import urllib.parse
 # CONFIGURATION - Edit these or use environment variables
 # ============================================================================
 
+def get_owner_id():
+    """Safely get owner ID from environment."""
+    val = os.getenv("TELEGRAM_OWNER_ID", "0")
+    try:
+        return int(val)
+    except ValueError:
+        print(f"\n[ERROR] TELEGRAM_OWNER_ID must be a number, got: '{val}'")
+        print("\nTo get your Telegram User ID:")
+        print("1. Open Telegram")
+        print("2. Search for @userinfobot")
+        print("3. Start a chat - it will reply with your numeric ID")
+        print("\nThen set it correctly:")
+        print("  export TELEGRAM_OWNER_ID=123456789")
+        print("")
+        return 0
+
 CONFIG = {
     # Telegram Configuration
     "TELEGRAM_BOT_TOKEN": os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE"),
-    "TELEGRAM_OWNER_ID": int(os.getenv("TELEGRAM_OWNER_ID", "0")),  # Your Telegram user ID
+    "TELEGRAM_OWNER_ID": get_owner_id(),  # Your Telegram user ID (number)
 
     # AI Provider: "claude", "openai", or "ollama"
     "AI_PROVIDER": os.getenv("AI_PROVIDER", "claude"),
