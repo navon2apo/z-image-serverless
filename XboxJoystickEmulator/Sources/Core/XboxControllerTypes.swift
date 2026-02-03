@@ -182,13 +182,13 @@ public struct ControllerInfo: Identifiable, Codable, Hashable {
 // MARK: - Utility Extensions
 
 extension Float {
-    func clamped(to range: ClosedRange<Float>) -> Float {
+    public func clamped(to range: ClosedRange<Float>) -> Float {
         return min(max(self, range.lowerBound), range.upperBound)
     }
 }
 
 extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
+    public func clamped(to range: ClosedRange<Double>) -> Double {
         return min(max(self, range.lowerBound), range.upperBound)
     }
 }
