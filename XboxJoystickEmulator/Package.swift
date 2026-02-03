@@ -27,14 +27,14 @@ let package = Package(
             path: "Sources/Core"
         ),
         .target(
-            name: "Controllers",
+            name: "Mapping",
             dependencies: ["XboxJoystickCore"],
-            path: "Sources/Controllers"
+            path: "Sources/Mapping"
         ),
         .target(
-            name: "Mapping",
-            dependencies: ["XboxJoystickCore", "Controllers"],
-            path: "Sources/Mapping"
+            name: "Controllers",
+            dependencies: ["XboxJoystickCore", "Mapping"],
+            path: "Sources/Controllers"
         ),
         .target(
             name: "UI",
