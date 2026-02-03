@@ -2,6 +2,7 @@
 // Controller Mapping - Maps generic controller inputs to Xbox controller layout
 
 import Foundation
+import XboxJoystickCore
 
 // MARK: - Button Mapping
 

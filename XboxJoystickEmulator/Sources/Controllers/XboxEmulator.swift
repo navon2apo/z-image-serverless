@@ -2,6 +2,8 @@
 // Virtual Xbox Controller Emulator - Translates input to Xbox controller format
 
 import Foundation
+import XboxJoystickCore
+import Mapping
 
 #if canImport(GameController)
 import GameController

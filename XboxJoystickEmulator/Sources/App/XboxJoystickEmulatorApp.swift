@@ -2,6 +2,10 @@
 // Main Application Entry Point
 
 import SwiftUI
+import XboxJoystickCore
+import Controllers
+import Mapping
+import UI
 
 @main
 struct XboxJoystickEmulatorApp: App {

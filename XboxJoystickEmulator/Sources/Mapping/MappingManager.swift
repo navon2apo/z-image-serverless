@@ -2,6 +2,7 @@
 // Mapping Manager - Manages controller profiles and mappings
 
 import Foundation
+import XboxJoystickCore
 
 // MARK: - Mapping Manager
 

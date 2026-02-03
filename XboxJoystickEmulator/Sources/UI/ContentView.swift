@@ -2,6 +2,9 @@
 // Main Content View - SwiftUI interface for the emulator
 
 import SwiftUI
+import XboxJoystickCore
+import Controllers
+import Mapping
 
 // MARK: - Main Content View
 

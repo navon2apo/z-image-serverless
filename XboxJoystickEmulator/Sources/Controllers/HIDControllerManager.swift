@@ -4,6 +4,7 @@
 import Foundation
 import IOKit
 import IOKit.hid
+import XboxJoystickCore
 
 #if canImport(GameController)
 import GameController
@@ -309,15 +310,11 @@ public class HIDControllerManager: ObservableObject {
         }
 
         // Menu buttons
-        if let buttonMenu = gamepad.buttonMenu {
-            buttonMenu.pressedChangedHandler = { [weak self] _, _, pressed in
-                self?.handleButtonInput(controllerId: info.id, buttonIndex: 10, pressed: pressed)
-            }
+        gamepad.buttonMenu.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.handleButtonInput(controllerId: info.id, buttonIndex: 10, pressed: pressed)
         }
-        if let buttonOptions = gamepad.buttonOptions {
-            buttonOptions.pressedChangedHandler = { [weak self] _, _, pressed in
-                self?.handleButtonInput(controllerId: info.id, buttonIndex: 11, pressed: pressed)
-            }
+        gamepad.buttonOptions?.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.handleButtonInput(controllerId: info.id, buttonIndex: 11, pressed: pressed)
         }
 
         // Axis handlers
