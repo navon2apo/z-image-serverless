@@ -1,6 +1,7 @@
 # Core dependencies from pyproject.toml
 torch>=2.5.0
 transformers>=4.51.0
+diffusers @ git+https://github.com/huggingface/diffusers.git
 safetensors
 loguru
 pillow
