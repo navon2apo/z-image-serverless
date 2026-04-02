@@ -65,10 +65,6 @@ jobs:
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "input_tag=${INPUT_TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Build local base image
-        run: |
-          docker build --platform linux/amd64 -f Dockerfile.base -t zimage-base .
-
       - name: Build application image
         shell: bash
         run: |

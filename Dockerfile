@@ -1,26 +1,13 @@
-FROM zimage-base
+FROM nav2apo/zimage-api:latest
 
 # Set working directory
 WORKDIR /app
 
-# Keep Hugging Face download cache out of the final image layers.
-ENV HF_HOME=/tmp/huggingface \
-    HUGGINGFACE_HUB_CACHE=/tmp/huggingface/hub \
-    TRANSFORMERS_CACHE=/tmp/huggingface/transformers
+# Install only the new dependency needed for the edit pipelines.
+RUN pip install --no-cache-dir "diffusers @ git+https://github.com/huggingface/diffusers.git"
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
-
-# Download model weights during build, then remove temporary caches so the
-# final image does not keep both the checkpoint and the Hugging Face cache.
-RUN python3 -c "from huggingface_hub import snapshot_download; import os; os.makedirs('ckpts/Z-Image-Turbo', exist_ok=True); snapshot_download(repo_id='Tongyi-MAI/Z-Image-Turbo', local_dir='ckpts/Z-Image-Turbo', local_dir_use_symlinks=False)"
-RUN rm -rf /tmp/huggingface /root/.cache/huggingface
+# Overlay only the updated serverless entrypoints on top of the known-good image.
+COPY handler.py zimage_wrapper.py /app/
 
 # Expose port (not used in serverless, but kept for compatibility)
 EXPOSE 8000
