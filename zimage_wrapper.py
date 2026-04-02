@@ -58,6 +58,19 @@ def _clear_pipeline_cache() -> None:
         torch.cuda.empty_cache()
 
 
+def _configure_pipeline_memory(pipe, mode: str, device: str) -> None:
+    """Apply memory-saving features to pipelines when useful."""
+    if hasattr(pipe, "enable_vae_slicing"):
+        pipe.enable_vae_slicing()
+    if hasattr(pipe, "enable_vae_tiling"):
+        pipe.enable_vae_tiling()
+
+    if device == "cuda" and mode in {"img2img", "inpaint"}:
+        pipe.enable_model_cpu_offload()
+    else:
+        pipe = pipe.to(device)
+
+
 def _load_pipeline(mode: str, model_path: Optional[str] = None):
     """Load and cache the requested Diffusers pipeline."""
     global _device_cache
@@ -89,7 +102,7 @@ def _load_pipeline(mode: str, model_path: Optional[str] = None):
         low_cpu_mem_usage=False,
         use_safetensors=True,
     )
-    pipe = pipe.to(device)
+    _configure_pipeline_memory(pipe, mode, device)
 
     _pipeline_cache[cache_key] = pipe
     return pipe, device

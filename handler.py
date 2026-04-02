@@ -60,6 +60,21 @@ def _infer_mode(input_data: Dict[str, Any]) -> str:
     return "text2img"
 
 
+def _fit_size_to_limit(width: int, height: int, max_side: int = 768) -> tuple[int, int]:
+    """Scale a size down to a max side and snap to multiples of 64."""
+    if max(width, height) <= max_side:
+        new_w = width
+        new_h = height
+    else:
+        scale = max_side / float(max(width, height))
+        new_w = int(width * scale)
+        new_h = int(height * scale)
+
+    new_w = max(256, (new_w // 64) * 64)
+    new_h = max(256, (new_h // 64) * 64)
+    return new_w, new_h
+
+
 def handler(event: Dict[str, Any]) -> Dict[str, Any]:
     """
     RunPod Serverless handler function.
@@ -98,15 +113,15 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         elif mode == "img2img":
             if image is None:
                 return {"error": "`image` is required for img2img mode"}
-            width = width or image.width
-            height = height or image.height
+            if width is None or height is None:
+                width, height = _fit_size_to_limit(image.width, image.height)
         elif mode == "inpaint":
             if image is None:
                 return {"error": "`image` is required for inpaint mode"}
             if mask_image is None:
                 return {"error": "`mask_image` is required for inpaint mode"}
-            width = width or image.width
-            height = height or image.height
+            if width is None or height is None:
+                width, height = _fit_size_to_limit(image.width, image.height)
         else:
             return {"error": f"Unsupported mode '{mode}'. Expected text2img, img2img, or inpaint."}
 
