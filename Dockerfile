@@ -19,7 +19,7 @@ COPY . .
 
 # Download model weights during build, then remove temporary caches so the
 # final image does not keep both the checkpoint and the Hugging Face cache.
-RUN python3 - <<'PY'\nfrom huggingface_hub import snapshot_download\nimport os\nos.makedirs('ckpts/Z-Image-Turbo', exist_ok=True)\nsnapshot_download(\n    repo_id='Tongyi-MAI/Z-Image-Turbo',\n    local_dir='ckpts/Z-Image-Turbo',\n    local_dir_use_symlinks=False,\n)\nPY
+RUN python3 -c "from huggingface_hub import snapshot_download; import os; os.makedirs('ckpts/Z-Image-Turbo', exist_ok=True); snapshot_download(repo_id='Tongyi-MAI/Z-Image-Turbo', local_dir='ckpts/Z-Image-Turbo', local_dir_use_symlinks=False)"
 RUN rm -rf /tmp/huggingface /root/.cache/huggingface
 
 # Expose port (not used in serverless, but kept for compatibility)
