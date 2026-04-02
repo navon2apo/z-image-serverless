@@ -117,6 +117,22 @@ def _build_generator(device: str, seed: Optional[int]) -> Optional[torch.Generat
     return torch.Generator(device=generator_device).manual_seed(seed)
 
 
+def _prepare_image(image: Image.Image, width: Optional[int], height: Optional[int]) -> Image.Image:
+    """Resize an input image to the requested dimensions when provided."""
+    prepared = image.convert("RGB")
+    if width is not None and height is not None and prepared.size != (width, height):
+        prepared = prepared.resize((width, height), Image.Resampling.LANCZOS)
+    return prepared
+
+
+def _prepare_mask(mask_image: Image.Image, width: Optional[int], height: Optional[int]) -> Image.Image:
+    """Resize a mask to match the requested dimensions."""
+    prepared = mask_image.convert("L")
+    if width is not None and height is not None and prepared.size != (width, height):
+        prepared = prepared.resize((width, height), Image.Resampling.NEAREST)
+    return prepared
+
+
 def run_zimage(
     prompt: str,
     width: Optional[int] = 1024,
@@ -170,7 +186,7 @@ def run_zimage(
     elif mode == "img2img":
         if image is None:
             raise ValueError("`image` is required for img2img mode.")
-        kwargs["image"] = image.convert("RGB")
+        kwargs["image"] = _prepare_image(image, width, height)
         kwargs["strength"] = strength
         if width is not None:
             kwargs["width"] = width
@@ -181,8 +197,8 @@ def run_zimage(
             raise ValueError("`image` is required for inpaint mode.")
         if mask_image is None:
             raise ValueError("`mask_image` is required for inpaint mode.")
-        kwargs["image"] = image.convert("RGB")
-        kwargs["mask_image"] = mask_image.convert("L")
+        kwargs["image"] = _prepare_image(image, width, height)
+        kwargs["mask_image"] = _prepare_mask(mask_image, width, height)
         kwargs["strength"] = strength
         if width is not None:
             kwargs["width"] = width
