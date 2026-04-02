@@ -32,6 +32,12 @@ except ImportError as e:
     sys.exit(1)
 
 
+ASPECT_PRESETS = {
+    "16:9": (1024, 576),
+    "9:16": (576, 1024),
+}
+
+
 def _decode_base64_image(image_data: Optional[str]):
     """Decode a base64 string or data URI into a PIL image."""
     if not image_data:
@@ -60,19 +66,66 @@ def _infer_mode(input_data: Dict[str, Any]) -> str:
     return "text2img"
 
 
-def _fit_size_to_limit(width: int, height: int, max_side: int = 768) -> tuple[int, int]:
-    """Scale a size down to a max side and snap to multiples of 64."""
-    if max(width, height) <= max_side:
-        new_w = width
-        new_h = height
-    else:
-        scale = max_side / float(max(width, height))
-        new_w = int(width * scale)
-        new_h = int(height * scale)
+def _normalize_aspect_ratio(value: Optional[str]) -> Optional[str]:
+    """Normalize common aspect ratio spellings to supported presets."""
+    if value is None:
+        return None
 
-    new_w = max(256, (new_w // 64) * 64)
-    new_h = max(256, (new_h // 64) * 64)
-    return new_w, new_h
+    cleaned = str(value).strip().replace(" ", "")
+    aliases = {
+        "16:9": "16:9",
+        "16/9": "16:9",
+        "landscape": "16:9",
+        "9:16": "9:16",
+        "9/16": "9:16",
+        "portrait": "9:16",
+    }
+    return aliases.get(cleaned)
+
+
+def _resolve_aspect_ratio(input_data: Dict[str, Any], image=None) -> str:
+    """Resolve the target aspect ratio to one of the supported high-quality presets."""
+    explicit_aspect = _normalize_aspect_ratio(input_data.get("aspect_ratio"))
+    if explicit_aspect:
+        return explicit_aspect
+
+    width = input_data.get("width")
+    height = input_data.get("height")
+    if width and height:
+        if width > height:
+            return "16:9"
+        if height > width:
+            return "9:16"
+
+    if image is not None:
+        if image.width > image.height:
+            return "16:9"
+        if image.height > image.width:
+            return "9:16"
+
+    return "16:9"
+
+
+def _resolve_dimensions(input_data: Dict[str, Any], image=None) -> tuple[str, int, int]:
+    """Resolve the request dimensions to supported presets only."""
+    width = input_data.get("width")
+    height = input_data.get("height")
+
+    if width is not None or height is not None:
+        if (width, height) == ASPECT_PRESETS["16:9"]:
+            return "16:9", width, height
+        if (width, height) == ASPECT_PRESETS["9:16"]:
+            return "9:16", width, height
+        raise ValueError(
+            "Only high-quality presets are supported: 1024x576 (16:9) or 576x1024 (9:16)."
+        )
+
+    aspect_ratio = _resolve_aspect_ratio(input_data, image=image)
+    if aspect_ratio not in ASPECT_PRESETS:
+        raise ValueError("Only 16:9 and 9:16 aspect ratios are supported.")
+
+    width, height = ASPECT_PRESETS[aspect_ratio]
+    return aspect_ratio, width, height
 
 
 def handler(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -97,9 +150,7 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             return {"error": "Prompt is required"}
         
         mode = _infer_mode(input_data)
-        width = input_data.get("width")
-        height = input_data.get("height")
-        steps = input_data.get("steps", 8)
+        steps = input_data.get("steps", 9)
         seed = input_data.get("seed")
         negative_prompt = input_data.get("negative_prompt")
         guidance_scale = input_data.get("guidance_scale", 0.0)
@@ -108,20 +159,17 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
         mask_image = _decode_base64_image(input_data.get("mask_image"))
 
         if mode == "text2img":
-            width = width or 1024
-            height = height or 1024
+            aspect_ratio, width, height = _resolve_dimensions(input_data)
         elif mode == "img2img":
             if image is None:
                 return {"error": "`image` is required for img2img mode"}
-            if width is None or height is None:
-                width, height = _fit_size_to_limit(image.width, image.height)
+            aspect_ratio, width, height = _resolve_dimensions(input_data, image=image)
         elif mode == "inpaint":
             if image is None:
                 return {"error": "`image` is required for inpaint mode"}
             if mask_image is None:
                 return {"error": "`mask_image` is required for inpaint mode"}
-            if width is None or height is None:
-                width, height = _fit_size_to_limit(image.width, image.height)
+            aspect_ratio, width, height = _resolve_dimensions(input_data, image=image)
         else:
             return {"error": f"Unsupported mode '{mode}'. Expected text2img, img2img, or inpaint."}
 
@@ -155,43 +203,11 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             "width": image.width,
             "height": image.height,
             "mode": mode,
+            "aspect_ratio": aspect_ratio,
         }
     
     except Exception as e:
         import traceback
-        # If we hit CUDA OOM, retry once with a smaller resolution to avoid total failure.
-        msg = str(e)
-        if ("CUDA out of memory" in msg) or ("OutOfMemoryError" in type(e).__name__):
-            try:
-                # Keep aspect ratio; cap the longer side to 768.
-                max_side = 768
-                if max(width, height) > max_side:
-                    scale = max_side / float(max(width, height))
-                    new_w = int((width * scale) // 64) * 64
-                    new_h = int((height * scale) // 64) * 64
-                    new_w = max(256, new_w)
-                    new_h = max(256, new_h)
-                    image = _run(new_w, new_h)
-
-                    img_bytes = io.BytesIO()
-                    image.save(img_bytes, format="PNG")
-                    img_bytes.seek(0)
-                    image_base64 = base64.b64encode(img_bytes.getvalue()).decode("utf-8")
-
-                    return {
-                        "image": image_base64,
-                        "format": "png",
-                        "width": image.width,
-                        "height": image.height,
-                        "mode": mode,
-                        "was_downscaled": True,
-                        "original_width": width,
-                        "original_height": height,
-                        "warning": "CUDA OOM at requested resolution; retried with downscaled resolution.",
-                    }
-            except Exception:
-                # Fall through to return the original error details
-                pass
 
         return {
             "error": str(e),
